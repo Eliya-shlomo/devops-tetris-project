@@ -1,0 +1,7 @@
+replicaCount: 3
+image:
+  repository: aminemaalej/tetrisv2
+  tag: "2"
+service:
+  type: LoadBalancer
+  port: 80

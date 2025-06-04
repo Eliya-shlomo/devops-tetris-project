@@ -6,6 +6,8 @@ In this step-by-step guide, we take you through an exciting DevOps project where
 - **Use Terraform for creating and managing AWS infrastructure as code**
 - **Set up Jenkins for a powerful CI/CD pipeline**
 - **Implement ArgoCD for seamless GitOps deployment to Kubernetes**
+- **Package Kubernetes resources with Helm**
+- **Automated testing and builds via GitHub Actions**
 
 
 ## ✅ Slides
@@ -46,4 +48,9 @@ https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html`
 ```
 https://stackoverflow.com/questions/68297354/what-is-the-default-password-of-argocd
 ```
+
+## 🛠️ Industry Tools
+
+- Helm chart available under `helm/tetris` for simplified Kubernetes deployments.
+- GitHub Actions workflow (`.github/workflows/ci.yml`) runs tests, builds Docker images and checks Terraform formatting on every push.
 
