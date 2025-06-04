@@ -28,6 +28,15 @@ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2
 kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}`
 ```
 
+
+### Deploy with ArgoCD
+
+Use the provided ArgoCD Application manifest to manage the game deployment.
+
+```bash
+kubectl apply -f argocd/tetris-app.yaml
+```
+
 ## 🔗 Links
 
 ### Terraform Installation
