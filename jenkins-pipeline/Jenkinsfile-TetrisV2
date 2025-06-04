@@ -1,0 +1,80 @@
+pipeline {
+    agent any
+
+    tools {
+        jdk 'jdk'
+        nodejs 'nodejs'
+    }
+
+    environment {
+        DOCKER_HUB_USER = 'eliyashlomo7' 
+        IMAGE_NAME = 'tetrisv2'
+        GITHUB_REPO = 'Eliya-shlomo/devops-tetris-project' 
+        GIT_USER_EMAIL = 'eliyashlomo7@gmail.com'               
+        GIT_USER_NAME  = 'Eliya-shlomo'                    
+    }
+
+    stages {
+        stage('Clean Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: "https://github.com/${env.GITHUB_REPO}.git"
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                dir('Tetris-V2') {
+                    sh 'npm install'
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir('Tetris-V2') {
+                    script {
+                        withDockerRegistry(credentialsId: 'docker-hub', toolName: 'docker') {
+                            sh 'docker system prune -f'
+                            sh 'docker container prune -f'
+                            sh "docker build -t ${DOCKER_HUB_USER}/${IMAGE_NAME}:${BUILD_NUMBER} ."
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker-hub', toolName: 'docker') {
+                        sh "docker push ${DOCKER_HUB_USER}/${IMAGE_NAME}:${BUILD_NUMBER}"
+                    }
+                }
+            }
+        }
+
+        stage('Update Deployment Manifest') {
+            steps {
+                dir('Manifest-file') {
+                    withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+                        sh '''
+                            git config user.email "${GIT_USER_EMAIL}"
+                            git config user.name "${GIT_USER_NAME}"
+                            oldTag=$(grep -oP '(?<=tetrisv2:)[^ ]+' deployment-service.yml)
+                            sed -i "s/tetrisv2:${oldTag}/tetrisv2:${BUILD_NUMBER}/" deployment-service.yml
+                            git add deployment-service.yml
+                            git commit -m "Update image to version ${BUILD_NUMBER}"
+                            git push https://${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git HEAD:main
+                        '''
+                    }
+                }
+            }
+        }
+    }
+}

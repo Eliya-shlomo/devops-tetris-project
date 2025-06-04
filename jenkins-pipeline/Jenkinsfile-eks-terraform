@@ -1,0 +1,74 @@
+properties([
+    parameters([
+        choice(name: 'ENV', choices: ['dev', 'staging', 'prod'], description: 'Select Environment'),
+        choice(name: 'TF_ACTION', choices: ['apply', 'destroy'], description: 'Terraform Action')
+    ])
+])
+
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = 'us-east-1' 
+        TF_DIR = '/terraform' 
+        CREDENTIALS_ID = 'aws-eliya' 
+        GIT_REPO = 'eliya-shlomo/my-terraform-infra' 
+        TFVARS_FILE = "${ENV}.tfvars" 
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: "https://github.com/${GIT_REPO}.git"
+            }
+        }
+
+        stage('Init Terraform') {
+            steps {
+                withAWS(credentials: "${CREDENTIALS_ID}", region: "${AWS_REGION}") {
+                    dir("${TF_DIR}") {
+                        sh 'terraform init'
+                    }
+                }
+            }
+        }
+
+        stage('Validate Terraform') {
+            steps {
+                withAWS(credentials: "${CREDENTIALS_ID}", region: "${AWS_REGION}") {
+                    dir("${TF_DIR}") {
+                        sh 'terraform validate'
+                    }
+                }
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                withAWS(credentials: "${CREDENTIALS_ID}", region: "${AWS_REGION}") {
+                    dir("${TF_DIR}") {
+                        sh "terraform plan -var-file=${TFVARS_FILE}"
+                    }
+                }
+            }
+        }
+
+        stage('Terraform Action') {
+            steps {
+                withAWS(credentials: "${CREDENTIALS_ID}", region: "${AWS_REGION}") {
+                    dir("${TF_DIR}") {
+                        script {
+                            if (params.TF_ACTION == 'apply') {
+                                sh "terraform apply -auto-approve -var-file=${TFVARS_FILE}"
+                            } else if (params.TF_ACTION == 'destroy') {
+                                sh "terraform destroy -auto-approve -var-file=${TFVARS_FILE}"
+                            } else {
+                                error "Invalid TF_ACTION: ${params.TF_ACTION}"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
